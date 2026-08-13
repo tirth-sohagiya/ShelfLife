@@ -1,0 +1,38 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: donation-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/donation_db
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      # ddl-auto: update is fine while we're actively iterating on the schema
+      # during learning/build-out. Swap to a migration tool (Flyway/Liquibase)
+      # before calling this production-grade - worth noting as a follow-up.
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    # Producer is now configured entirely in code - see
+    # config/KafkaProducerConfig.java - because the Jackson 3 migration
+    # (JacksonJsonSerializer) moved "don't add type headers" from a YAML
+    # property string to a type-safe setter (setAddTypeInfo(false)).
+    consumer:
+      group-id: donation-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.donationmatch.*"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

@@ -1,0 +1,17 @@
+# Maven build output
+target/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Personal prep notes - not part of the public repo
+design_decisions_log.md
+interview_star_draft.md

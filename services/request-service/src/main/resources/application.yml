@@ -1,0 +1,35 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: request-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/request_db
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    # Producer is now configured entirely in code - see
+    # config/KafkaProducerConfig.java - because the Jackson 3 migration
+    # (JacksonJsonSerializer) moved "don't add type headers" from a YAML
+    # property string to a type-safe setter (setAddTypeInfo(false)).
+    consumer:
+      group-id: request-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.donationmatch.*"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
