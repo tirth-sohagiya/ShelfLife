@@ -48,7 +48,7 @@ public class AllocationService {
      * available on either side).
      */
     @Transactional
-    public int tryAllocate(UUID lotId, UUID requestId) {
+    public Optional<Allocation> tryAllocate(UUID lotId, UUID requestId) {
 
         // Lock both rows in a fixed order (by UUID comparison) to avoid
         // deadlock between concurrent calls involving the same pair.
@@ -63,7 +63,7 @@ public class AllocationService {
         }
 
         if (lotOpt.isEmpty() || requestOpt.isEmpty()) {
-            return 0; // defensive - shouldn't normally happen
+            return Optional.empty(); // defensive - shouldn't normally happen
         }
         Lot lot = lotOpt.get();
         Request request = requestOpt.get();
@@ -75,7 +75,7 @@ public class AllocationService {
         int requestRemaining = request.getQuantityRequested() - requestAllocated;
 
         if (lotRemaining <= 0 || requestRemaining <= 0) {
-            return 0; // nothing left on one side, nothing to do
+            return Optional.empty(); // nothing left on one side, nothing to do
         }
 
         int allocateQty = Math.min(lotRemaining, requestRemaining);
@@ -87,8 +87,8 @@ public class AllocationService {
         allocation.setStatus(AllocationStatus.PENDING_PICKUP);
         allocation.setPickupDeadline(Instant.now().plus(PICKUP_TTL));
         allocation.setCreatedAt(Instant.now());
-        allocationRepository.save(allocation);
+        Allocation saved = allocationRepository.save(allocation);
 
-        return allocateQty;
+        return Optional.of(saved);
     }
 }

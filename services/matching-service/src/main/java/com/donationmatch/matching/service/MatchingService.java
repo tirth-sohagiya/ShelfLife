@@ -3,6 +3,7 @@ package com.donationmatch.matching.service;
 import com.donationmatch.matching.entity.AllocationStatus;
 import com.donationmatch.matching.entity.Lot;
 import com.donationmatch.matching.entity.Request;
+import com.donationmatch.matching.event.AllocationEventPublisher;
 import com.donationmatch.matching.repository.AllocationRepository;
 import com.donationmatch.matching.repository.LotRepository;
 import com.donationmatch.matching.repository.RequestRepository;
@@ -27,15 +28,18 @@ public class MatchingService {
     private final RequestRepository requestRepository;
     private final AllocationRepository allocationRepository;
     private final AllocationService allocationService;
+    private final AllocationEventPublisher allocationEventPublisher;
 
     public MatchingService(LotRepository lotRepository,
                             RequestRepository requestRepository,
                             AllocationRepository allocationRepository,
-                            AllocationService allocationService) {
+                            AllocationService allocationService,
+                            AllocationEventPublisher allocationEventPublisher) {
         this.lotRepository = lotRepository;
         this.requestRepository = requestRepository;
         this.allocationRepository = allocationRepository;
         this.allocationService = allocationService;
+        this.allocationEventPublisher = allocationEventPublisher;
     }
 
     /** Called right after a new Lot is saved to the local read model. */
@@ -44,7 +48,8 @@ public class MatchingService {
                 requestRepository.findByItemTypeOrderByCreatedAtAsc(lot.getItemType());
 
         for (Request request : candidates) {
-            allocationService.tryAllocate(lot.getId(), request.getId());
+            allocationService.tryAllocate(lot.getId(), request.getId())
+                    .ifPresent(allocationEventPublisher::publishAllocationCreated);
 
             int lotAllocated = allocationRepository.sumActiveQuantityByLotId(lot.getId(), ACTIVE_STATUSES);
             int lotRemaining = lot.getQuantityAvailable() - lotAllocated;
@@ -60,7 +65,8 @@ public class MatchingService {
                 .findByItemTypeAndExpiryDateAfterOrderByExpiryDateAsc(request.getItemType(), Instant.now());
 
         for (Lot lot : candidates) {
-            allocationService.tryAllocate(lot.getId(), request.getId());
+            allocationService.tryAllocate(lot.getId(), request.getId())
+                    .ifPresent(allocationEventPublisher::publishAllocationCreated);
 
             int requestAllocated = allocationRepository.sumActiveQuantityByRequestId(request.getId(), ACTIVE_STATUSES);
             int requestRemaining = request.getQuantityRequested() - requestAllocated;
