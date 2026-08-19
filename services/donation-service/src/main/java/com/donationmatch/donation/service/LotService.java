@@ -5,12 +5,14 @@ import com.donationmatch.donation.entity.Lot;
 import com.donationmatch.donation.entity.LotStatus;
 import com.donationmatch.donation.event.DonationEventPublisher;
 import com.donationmatch.donation.repository.LotRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class LotService {
 
@@ -33,6 +35,8 @@ public class LotService {
         lot.setStatus(LotStatus.ACTIVE);
 
         Lot saved = lotRepository.save(lot);
+        log.info("Created lot {} - donor {}, {} units of {}, expires {}",
+                saved.getId(), saved.getDonorId(), saved.getQuantityTotal(), saved.getItemType(), saved.getExpiryDate());
 
         publisher.publishLotCreated(saved);
         return saved;

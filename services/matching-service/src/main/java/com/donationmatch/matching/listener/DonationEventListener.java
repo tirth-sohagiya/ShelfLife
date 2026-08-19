@@ -4,9 +4,11 @@ import com.donationmatch.matching.entity.Lot;
 import com.donationmatch.matching.event.DonationLotCreatedEvent;
 import com.donationmatch.matching.repository.LotRepository;
 import com.donationmatch.matching.service.MatchingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class DonationEventListener {
 
@@ -26,6 +28,7 @@ public class DonationEventListener {
         lot.setQuantityAvailable(event.quantityAvailable());
         lot.setExpiryDate(event.expiryDate());
         lotRepository.save(lot);
+        log.info("Received lot {} - {} units of {}", lot.getId(), lot.getQuantityAvailable(), lot.getItemType());
 
         matchingService.matchNewLot(lot);
     }

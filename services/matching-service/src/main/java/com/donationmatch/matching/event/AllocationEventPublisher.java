@@ -1,9 +1,11 @@
 package com.donationmatch.matching.event;
 
 import com.donationmatch.matching.entity.Allocation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class AllocationEventPublisher {
 
@@ -21,5 +23,6 @@ public class AllocationEventPublisher {
                 allocation.getQuantity()
         );
         kafkaTemplate.send("allocation-created", allocation.getId().toString(), event);
+        log.info("Published AllocationCreatedEvent {}", allocation.getId());
     }
 }

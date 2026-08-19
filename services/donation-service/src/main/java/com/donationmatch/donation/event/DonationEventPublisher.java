@@ -1,9 +1,11 @@
 package com.donationmatch.donation.event;
 
 import com.donationmatch.donation.entity.Lot;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class DonationEventPublisher {
 
@@ -21,5 +23,6 @@ public class DonationEventPublisher {
                 lot.getExpiryDate()
         );
         kafkaTemplate.send("donation-lot-created", lot.getId().toString(), event);
+        log.info("Published DonationLotCreatedEvent for lot {}", lot.getId());
     }
 }

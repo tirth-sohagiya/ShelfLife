@@ -7,6 +7,7 @@ import com.donationmatch.matching.entity.Request;
 import com.donationmatch.matching.repository.AllocationRepository;
 import com.donationmatch.matching.repository.LotRepository;
 import com.donationmatch.matching.repository.RequestRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,10 +23,11 @@ import java.util.UUID;
  * {@code @Transactional} is applied via Spring's proxy rather than a
  * same-class self-invocation, which would bypass it silently.
  */
+@Slf4j
 @Service
 public class AllocationService {
 
-    private static final Duration PICKUP_TTL = Duration.ofHours(48);
+    private static final Duration PICKUP_TTL = Duration.ofHours(24);
 
     private static final List<AllocationStatus> ACTIVE_STATUSES =
             List.of(AllocationStatus.PENDING_PICKUP, AllocationStatus.CONFIRMED);
@@ -75,6 +77,8 @@ public class AllocationService {
         int requestRemaining = request.getQuantityRequested() - requestAllocated;
 
         if (lotRemaining <= 0 || requestRemaining <= 0) {
+            log.info("No allocation between lot {} and request {} - lot remaining {}, request remaining {}",
+                    lotId, requestId, lotRemaining, requestRemaining);
             return Optional.empty(); // nothing left on one side, nothing to do
         }
 
@@ -88,7 +92,30 @@ public class AllocationService {
         allocation.setPickupDeadline(Instant.now().plus(PICKUP_TTL));
         allocation.setCreatedAt(Instant.now());
         Allocation saved = allocationRepository.save(allocation);
+        log.info("Allocated {} unit(s) - lot {} to request {}, allocation {}, pickup deadline {}",
+                allocateQty, lotId, requestId, saved.getId(), saved.getPickupDeadline());
 
         return Optional.of(saved);
+    }
+
+    // Conditional update, not a lock - fixed transition, not a
+    // stale-prone decision like tryAllocate.
+    @Transactional
+    public Allocation confirmPickup(UUID allocationId) {
+        Allocation allocation = allocationRepository.findById(allocationId)
+                .orElseThrow(() -> new IllegalArgumentException("Allocation not found: " + allocationId));
+
+        if (allocationRepository.confirmIfPending(allocationId) == 0) {
+            throw new IllegalStateException(
+                    "Allocation " + allocationId + " cannot be confirmed - current status is " + allocation.getStatus());
+        }
+
+        allocation.setStatus(AllocationStatus.CONFIRMED);
+        log.info("Confirmed pickup for allocation {}", allocationId);
+        return allocation;
+    }
+
+    public List<Allocation> getAllocationsForLot(UUID lotId) {
+        return allocationRepository.findByLotId(lotId);
     }
 }

@@ -16,4 +16,9 @@ public interface LotRepository extends JpaRepository<Lot, UUID> {
             "WHERE id = :lotId",
             nativeQuery = true)
     void applyAllocation(@Param("lotId") UUID lotId, @Param("qty") Integer qty);
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "UPDATE lots SET status = 'EXPIRED' WHERE expiry_date < now() AND status = 'ACTIVE'",
+            nativeQuery = true)
+    int expireStaleLots();
 }
