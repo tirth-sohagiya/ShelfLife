@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,7 +20,9 @@ import java.util.UUID;
  * source of truth.
  */
 @Entity
-@Table(name = "lots")
+@Table(name = "lots", indexes = {
+        @Index(name = "idx_lots_item_type_expiry", columnList = "item_type, expiry_date")
+})
 @Getter
 @Setter
 @NoArgsConstructor

@@ -20,16 +20,9 @@ spring:
         format_sql: true
   kafka:
     bootstrap-servers: localhost:9092
-    # Producer is now configured entirely in code - see
-    # config/KafkaProducerConfig.java - because the Jackson 3 migration
-    # (JacksonJsonSerializer) moved "don't add type headers" from a YAML
-    # property string to a type-safe setter (setAddTypeInfo(false)).
+    # Producer/consumer beans defined in KafkaProducerConfig, KafkaConsumerConfig.
     consumer:
       group-id: donation-service
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "com.donationmatch.*"
 
 management:
   endpoints:

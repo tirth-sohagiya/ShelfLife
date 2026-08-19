@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,9 @@ import java.util.UUID;
  * than pooled into one running total per item type.
  */
 @Entity
-@Table(name = "lots")
+@Table(name = "lots", indexes = {
+        @Index(name = "idx_lots_status_expiry", columnList = "status, expiry_date")
+})
 @Getter
 @Setter
 @NoArgsConstructor
