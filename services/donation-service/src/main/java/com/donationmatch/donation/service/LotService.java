@@ -6,10 +6,11 @@ import com.donationmatch.donation.entity.LotStatus;
 import com.donationmatch.donation.event.DonationEventPublisher;
 import com.donationmatch.donation.repository.LotRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -42,8 +43,8 @@ public class LotService {
         return saved;
     }
 
-    public List<Lot> getAllLots() {
-        return lotRepository.findAll();
+    public Page<Lot> getAllLots(Pageable pageable) {
+        return lotRepository.findAll(pageable);
     }
 
     public Lot getLotById(UUID id) {

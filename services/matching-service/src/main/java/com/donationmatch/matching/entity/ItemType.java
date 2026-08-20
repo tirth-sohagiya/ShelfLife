@@ -1,9 +1,5 @@
 package com.donationmatch.matching.entity;
 
-/**
- * Closed set of donation/request categories, used for exact matching
- * between lots and requests.
- */
 public enum ItemType {
     CANNED_VEGETABLES,
     CANNED_FRUIT,

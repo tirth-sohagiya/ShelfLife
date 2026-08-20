@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,4 +34,11 @@ public interface AllocationRepository extends JpaRepository<Allocation, UUID> {
     @Query("UPDATE Allocation a SET a.status = 'CONFIRMED' " +
             "WHERE a.id = :id AND a.status = 'PENDING_PICKUP'")
     int confirmIfPending(@Param("id") UUID id);
+
+    List<Allocation> findByStatusAndPickupDeadlineBefore(AllocationStatus status, Instant deadline);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Allocation a SET a.status = 'EXPIRED' " +
+            "WHERE a.id = :id AND a.status = 'PENDING_PICKUP'")
+    int expireIfPending(@Param("id") UUID id);
 }

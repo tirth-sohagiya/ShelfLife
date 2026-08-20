@@ -1,5 +1,6 @@
 package com.donationmatch.matching.service;
 
+import com.donationmatch.matching.entity.Allocation;
 import com.donationmatch.matching.entity.AllocationStatus;
 import com.donationmatch.matching.entity.Lot;
 import com.donationmatch.matching.entity.Request;
@@ -44,7 +45,6 @@ public class MatchingService {
         this.allocationEventPublisher = allocationEventPublisher;
     }
 
-    /** Called right after a new Lot is saved to the local read model. */
     public void matchNewLot(Lot lot) {
         List<Request> candidates =
                 requestRepository.findByItemTypeOrderByCreatedAtAsc(lot.getItemType());
@@ -58,15 +58,14 @@ public class MatchingService {
             int lotRemaining = lot.getQuantityAvailable() - lotAllocated;
             if (lotRemaining <= 0) {
                 log.info("Lot {} fully allocated, stopping search", lot.getId());
-                break; // this lot is fully spoken for, stop checking more requests
+                break;
             }
         }
     }
 
-    /** Called right after a new Request is saved to the local read model. */
     public void matchNewRequest(Request request) {
-        List<Lot> candidates = lotRepository
-                .findByItemTypeAndExpiryDateAfterOrderByExpiryDateAsc(request.getItemType(), Instant.now());
+        List<Lot> candidates = lotRepository.findByItemTypeAndExpiryDateAfterOrderByExpiryDateAsc(
+                request.getItemType(), Instant.now().plus(AllocationService.PICKUP_TTL));
         log.info("Matching request {} against {} candidate lot(s)", request.getId(), candidates.size());
 
         for (Lot lot : candidates) {
@@ -77,8 +76,16 @@ public class MatchingService {
             int requestRemaining = request.getQuantityRequested() - requestAllocated;
             if (requestRemaining <= 0) {
                 log.info("Request {} fully satisfied, stopping search", request.getId());
-                break; // this request is fully satisfied, stop checking more lots
+                break;
             }
         }
+    }
+
+    public void releaseIfOverdue(Allocation allocation) {
+        if (!allocationService.expireIfOverdue(allocation.getId())) {
+            return;
+        }
+        allocationEventPublisher.publishAllocationExpired(allocation);
+        lotRepository.findById(allocation.getLotId()).ifPresent(this::matchNewLot);
     }
 }

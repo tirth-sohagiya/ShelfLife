@@ -54,5 +54,50 @@ services:
     depends_on:
       - broker
 
+  donation-service:
+    build:
+      context: ./services/donation-service
+    container_name: donation-matching-donation-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/donation_db
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: broker:19092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      broker:
+        condition: service_started
+
+  request-service:
+    build:
+      context: ./services/request-service
+    container_name: donation-matching-request-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/request_db
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: broker:19092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      broker:
+        condition: service_started
+
+  matching-service:
+    build:
+      context: ./services/matching-service
+    container_name: donation-matching-matching-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/matching_db
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: broker:19092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      broker:
+        condition: service_started
+
 volumes:
   postgres_data:

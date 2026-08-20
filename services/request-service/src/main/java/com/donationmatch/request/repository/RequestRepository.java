@@ -16,4 +16,11 @@ public interface RequestRepository extends JpaRepository<Request, UUID> {
             "WHERE id = :requestId",
             nativeQuery = true)
     void applyAllocation(@Param("requestId") UUID requestId, @Param("qty") Integer qty);
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "UPDATE requests SET quantity_fulfilled = quantity_fulfilled - :qty, " +
+            "status = CASE WHEN quantity_fulfilled - :qty <= 0 THEN 'OPEN' ELSE 'PARTIALLY_FULFILLED' END " +
+            "WHERE id = :requestId",
+            nativeQuery = true)
+    void releaseAllocation(@Param("requestId") UUID requestId, @Param("qty") Integer qty);
 }

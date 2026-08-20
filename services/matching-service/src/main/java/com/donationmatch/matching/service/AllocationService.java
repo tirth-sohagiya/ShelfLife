@@ -7,6 +7,7 @@ import com.donationmatch.matching.entity.Request;
 import com.donationmatch.matching.repository.AllocationRepository;
 import com.donationmatch.matching.repository.LotRepository;
 import com.donationmatch.matching.repository.RequestRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +28,7 @@ import java.util.UUID;
 @Service
 public class AllocationService {
 
-    private static final Duration PICKUP_TTL = Duration.ofHours(24);
+    public static final Duration PICKUP_TTL = Duration.ofHours(24);
 
     private static final List<AllocationStatus> ACTIVE_STATUSES =
             List.of(AllocationStatus.PENDING_PICKUP, AllocationStatus.CONFIRMED);
@@ -35,22 +36,25 @@ public class AllocationService {
     private final LotRepository lotRepository;
     private final RequestRepository requestRepository;
     private final AllocationRepository allocationRepository;
+    private final MeterRegistry meterRegistry;
 
     public AllocationService(LotRepository lotRepository,
                               RequestRepository requestRepository,
-                              AllocationRepository allocationRepository) {
+                              AllocationRepository allocationRepository,
+                              MeterRegistry meterRegistry) {
         this.lotRepository = lotRepository;
         this.requestRepository = requestRepository;
         this.allocationRepository = allocationRepository;
+        this.meterRegistry = meterRegistry;
     }
 
-    /**
-     * Attempts to allocate as much as possible between one lot and one
-     * request. Returns the quantity actually allocated (0 if nothing was
-     * available on either side).
-     */
     @Transactional
     public Optional<Allocation> tryAllocate(UUID lotId, UUID requestId) {
+        return meterRegistry.timer("matching.allocation.duration")
+                .record(() -> doTryAllocate(lotId, requestId));
+    }
+
+    private Optional<Allocation> doTryAllocate(UUID lotId, UUID requestId) {
 
         // Lock both rows in a fixed order (by UUID comparison) to avoid
         // deadlock between concurrent calls involving the same pair.
@@ -70,6 +74,12 @@ public class AllocationService {
         Lot lot = lotOpt.get();
         Request request = requestOpt.get();
 
+        if (lot.getExpiryDate().isBefore(Instant.now().plus(PICKUP_TTL))) {
+            log.info("Skipping lot {} - not enough shelf life left for a full pickup window", lotId);
+            meterRegistry.counter("matching.allocations.rejected", "reason", "insufficient_shelf_life").increment();
+            return Optional.empty();
+        }
+
         int lotAllocated = allocationRepository.sumActiveQuantityByLotId(lotId, ACTIVE_STATUSES);
         int lotRemaining = lot.getQuantityAvailable() - lotAllocated;
 
@@ -79,7 +89,8 @@ public class AllocationService {
         if (lotRemaining <= 0 || requestRemaining <= 0) {
             log.info("No allocation between lot {} and request {} - lot remaining {}, request remaining {}",
                     lotId, requestId, lotRemaining, requestRemaining);
-            return Optional.empty(); // nothing left on one side, nothing to do
+            meterRegistry.counter("matching.allocations.rejected", "reason", "insufficient_capacity").increment();
+            return Optional.empty();
         }
 
         int allocateQty = Math.min(lotRemaining, requestRemaining);
@@ -94,6 +105,7 @@ public class AllocationService {
         Allocation saved = allocationRepository.save(allocation);
         log.info("Allocated {} unit(s) - lot {} to request {}, allocation {}, pickup deadline {}",
                 allocateQty, lotId, requestId, saved.getId(), saved.getPickupDeadline());
+        meterRegistry.counter("matching.allocations.created").increment();
 
         return Optional.of(saved);
     }
@@ -112,10 +124,21 @@ public class AllocationService {
 
         allocation.setStatus(AllocationStatus.CONFIRMED);
         log.info("Confirmed pickup for allocation {}", allocationId);
+        meterRegistry.counter("matching.allocations.confirmed").increment();
         return allocation;
     }
 
     public List<Allocation> getAllocationsForLot(UUID lotId) {
         return allocationRepository.findByLotId(lotId);
+    }
+
+    @Transactional
+    public boolean expireIfOverdue(UUID allocationId) {
+        boolean expired = allocationRepository.expireIfPending(allocationId) > 0;
+        if (expired) {
+            log.info("Expired allocation {} - pickup deadline passed", allocationId);
+            meterRegistry.counter("matching.allocations.expired").increment();
+        }
+        return expired;
     }
 }

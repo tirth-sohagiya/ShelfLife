@@ -16,13 +16,22 @@ public class AllocationEventPublisher {
     }
 
     public void publishAllocationCreated(Allocation allocation) {
-        AllocationCreatedEvent event = new AllocationCreatedEvent(
+        publish(allocation, AllocationLifecycleEventType.CREATED);
+    }
+
+    public void publishAllocationExpired(Allocation allocation) {
+        publish(allocation, AllocationLifecycleEventType.EXPIRED);
+    }
+
+    private void publish(Allocation allocation, AllocationLifecycleEventType type) {
+        AllocationLifecycleEvent event = new AllocationLifecycleEvent(
                 allocation.getId(),
                 allocation.getLotId(),
                 allocation.getRequestId(),
-                allocation.getQuantity()
+                allocation.getQuantity(),
+                type
         );
-        kafkaTemplate.send("allocation-created", allocation.getId().toString(), event);
-        log.info("Published AllocationCreatedEvent {}", allocation.getId());
+        kafkaTemplate.send("allocation-lifecycle", allocation.getId().toString(), event);
+        log.info("Published AllocationLifecycleEvent {} ({})", allocation.getId(), type);
     }
 }

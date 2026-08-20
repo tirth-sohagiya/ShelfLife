@@ -6,10 +6,11 @@ import com.donationmatch.request.entity.RequestStatus;
 import com.donationmatch.request.event.RequestEventPublisher;
 import com.donationmatch.request.repository.RequestRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -41,8 +42,8 @@ public class RequestService {
         return saved;
     }
 
-    public List<Request> getAllRequests() {
-        return requestRepository.findAll();
+    public Page<Request> getAllRequests(Pageable pageable) {
+        return requestRepository.findAll(pageable);
     }
 
     public Request getRequestById(UUID id) {

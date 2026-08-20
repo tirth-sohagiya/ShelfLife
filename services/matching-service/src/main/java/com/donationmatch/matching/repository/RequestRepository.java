@@ -18,6 +18,5 @@ public interface RequestRepository extends JpaRepository<Request, UUID> {
     @Query("SELECT r FROM Request r WHERE r.id = :id")
     Optional<Request> findByIdForUpdate(@Param("id") UUID id);
 
-    // Oldest-first candidates for a newly-arrived lot.
     List<Request> findByItemTypeOrderByCreatedAtAsc(ItemType itemType);
 }

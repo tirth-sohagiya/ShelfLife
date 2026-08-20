@@ -4,6 +4,8 @@ import com.donationmatch.request.dto.CreateRequestRequest;
 import com.donationmatch.request.entity.Request;
 import com.donationmatch.request.service.RequestService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -33,8 +34,8 @@ public class RequestController {
     }
 
     @GetMapping
-    public List<Request> getAllRequests() {
-        return requestService.getAllRequests();
+    public Page<Request> getAllRequests(Pageable pageable) {
+        return requestService.getAllRequests(pageable);
     }
 
     @GetMapping("/{id}")

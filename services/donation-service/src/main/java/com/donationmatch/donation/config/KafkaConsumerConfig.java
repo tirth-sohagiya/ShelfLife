@@ -1,6 +1,6 @@
 package com.donationmatch.donation.config;
 
-import com.donationmatch.donation.event.AllocationCreatedEvent;
+import com.donationmatch.donation.event.AllocationLifecycleEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,24 +23,26 @@ public class KafkaConsumerConfig {
     @Value("${spring.kafka.consumer.group-id}")
     private String groupId;
 
-    @Bean
-    public ConsumerFactory<String, AllocationCreatedEvent> allocationConsumerFactory() {
+    private Map<String, Object> baseConsumerProps() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        JacksonJsonDeserializer<AllocationCreatedEvent> deserializer =
-                new JacksonJsonDeserializer<>(AllocationCreatedEvent.class, false);
-
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), deserializer);
+        return props;
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, AllocationCreatedEvent> allocationListenerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, AllocationCreatedEvent> factory =
+    public ConsumerFactory<String, AllocationLifecycleEvent> allocationLifecycleConsumerFactory() {
+        JacksonJsonDeserializer<AllocationLifecycleEvent> deserializer =
+                new JacksonJsonDeserializer<>(AllocationLifecycleEvent.class, false);
+        return new DefaultKafkaConsumerFactory<>(baseConsumerProps(), new StringDeserializer(), deserializer);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, AllocationLifecycleEvent> allocationLifecycleListenerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, AllocationLifecycleEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(allocationConsumerFactory());
+        factory.setConsumerFactory(allocationLifecycleConsumerFactory());
         return factory;
     }
 }
