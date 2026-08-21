@@ -1,8 +1,8 @@
-# Donation Matching System
+# ShelfLife
 
 [![CI](https://github.com/tirth-sohagiya/donation-matching-system/actions/workflows/ci.yml/badge.svg)](https://github.com/tirth-sohagiya/donation-matching-system/actions/workflows/ci.yml)
 
-Event-driven backend that matches surplus food/goods donations to shelter requests. Built as three independently deployable Spring Boot services communicating over Kafka, with no direct database access between them.
+ShelfLife is an event-driven backend that matches surplus food/goods donations to shelter requests. Built as three independently deployable Spring Boot services communicating over Kafka, with no direct database access between them.
 
 The core problem it solves: donations are perishable and arrive in arbitrary quantities, requests rarely line up 1:1 with what's available, and a shelter that reserves a donation but never picks it up shouldn't permanently take that donation out of circulation. The matching engine allocates the soonest-expiring inventory first (FEFO), supports a single request drawing from multiple donations over time, and automatically releases and re-matches allocations that go unclaimed past their pickup window.
 
